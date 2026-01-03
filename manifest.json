@@ -2,7 +2,7 @@
   "name": "Kniha Jázd Pro",
   "short_name": "Kniha Jázd",
   "description": "Profesionálna evidencia jázd",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
