@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Trip } from '../types';
 
 interface TripListProps {
@@ -9,10 +9,20 @@ interface TripListProps {
 }
 
 const TripList: React.FC<TripListProps> = ({ trips, onDelete, onBack }) => {
-  const handleDelete = (e: React.MouseEvent, id: string) => {
-    e.preventDefault();
-    e.stopPropagation(); // Zabráni prebublávaniu eventu
+  // Lokálny stav pre ID jazdy, ktorú sa chystáme vymazať
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const handleDeleteClick = (id: string) => {
+    setConfirmingId(id);
+  };
+
+  const cancelDelete = () => {
+    setConfirmingId(null);
+  };
+
+  const confirmDelete = (id: string) => {
     onDelete(id);
+    setConfirmingId(null);
   };
 
   return (
@@ -31,10 +41,31 @@ const TripList: React.FC<TripListProps> = ({ trips, onDelete, onBack }) => {
       ) : (
         <div className="space-y-4">
           {trips.map(trip => (
-            <div key={trip.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative group overflow-hidden">
+            <div key={trip.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden transition-all">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
               
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Overlay pre potvrdenie vymazania */}
+              {confirmingId === trip.id && (
+                <div className="absolute inset-0 bg-white/95 z-10 flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
+                  <p className="font-bold text-slate-900 mb-4 text-center">Naozaj vymazať túto jazdu ({trip.distanceKm} km)?</p>
+                  <div className="flex gap-3 w-full max-w-xs">
+                    <button 
+                      onClick={cancelDelete}
+                      className="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                    >
+                      Zrušiť
+                    </button>
+                    <button 
+                      onClick={() => confirmDelete(trip.id)}
+                      className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-100"
+                    >
+                      Vymazať
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
                   <div className="hidden sm:flex flex-col items-center justify-center bg-slate-50 p-2 rounded-lg min-w-[70px] border border-slate-100">
                     <span className="text-xs font-bold text-slate-400 uppercase">{new Date(trip.date).toLocaleDateString('sk-SK', { month: 'short' })}</span>
@@ -81,8 +112,8 @@ const TripList: React.FC<TripListProps> = ({ trips, onDelete, onBack }) => {
                   </div>
                   <button 
                     type="button"
-                    onClick={(e) => handleDelete(e, trip.id)}
-                    className="p-3 text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all flex items-center justify-center border border-red-100 active:scale-90"
+                    onClick={() => handleDeleteClick(trip.id)}
+                    className="p-3 text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all flex items-center justify-center border border-red-100 active:scale-95"
                     title="Odstrániť jazdu"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Trip, AppSettings, HistoryStats, ActiveTrip } from './types';
 import TripForm from './components/TripForm';
 import TripList from './components/TripList';
@@ -11,72 +11,54 @@ const STORAGE_KEY_SETTINGS = 'kniha_jazd_settings_v1';
 const STORAGE_KEY_ACTIVE = 'kniha_jazd_active_v1';
 
 const App: React.FC = () => {
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
-  const [settings, setSettings] = useState<AppSettings>({
-    fuelPrice: 1.65,
-    averageConsumption: 6.5,
+  // Inicializácia priamo z localStorage pre okamžité dáta bez race condition
+  const [trips, setTrips] = useState<Trip[]>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY_TRIPS);
+    if (!stored) return [];
+    try {
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
   });
+
+  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY_ACTIVE);
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored);
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY_SETTINGS);
+    if (!stored) return { fuelPrice: 1.65, averageConsumption: 6.5 };
+    try {
+      return JSON.parse(stored);
+    } catch (e) {
+      return { fuelPrice: 1.65, averageConsumption: 6.5 };
+    }
+  });
+
   const [view, setView] = useState<'dashboard' | 'add' | 'history' | 'settings'>('dashboard');
-  
-  // Pomocná premenná na sledovanie, či sú dáta už načítané
-  const isInitialMount = useRef(true);
 
-  // 1. Načítanie dát pri štarte
+  // Ukladanie pri každej zmene
   useEffect(() => {
-    const storedTrips = localStorage.getItem(STORAGE_KEY_TRIPS);
-    const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
-    const storedActive = localStorage.getItem(STORAGE_KEY_ACTIVE);
-    
-    if (storedTrips) {
-      try {
-        const parsed = JSON.parse(storedTrips);
-        if (Array.isArray(parsed)) setTrips(parsed);
-      } catch (e) {
-        console.error("Chyba pri načítaní jázd", e);
-      }
-    }
-    if (storedSettings) {
-      try {
-        setSettings(JSON.parse(storedSettings));
-      } catch (e) {
-        console.error("Chyba pri načítaní nastavení", e);
-      }
-    }
-    if (storedActive) {
-      try {
-        setActiveTrip(JSON.parse(storedActive));
-      } catch (e) {
-        console.error("Chyba pri načítaní aktívnej jazdy", e);
-      }
-    }
-    
-    // Po krátkom čase nastavíme, že už sme "po načítaní"
-    setTimeout(() => {
-      isInitialMount.current = false;
-    }, 100);
-  }, []);
-
-  // 2. Ukladanie dát (iba ak už nie sme v "initial mount" fáze)
-  useEffect(() => {
-    if (!isInitialMount.current) {
-      localStorage.setItem(STORAGE_KEY_TRIPS, JSON.stringify(trips));
-    }
+    localStorage.setItem(STORAGE_KEY_TRIPS, JSON.stringify(trips));
   }, [trips]);
 
   useEffect(() => {
-    if (!isInitialMount.current) {
-      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
-    }
+    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
   }, [settings]);
 
   useEffect(() => {
-    if (!isInitialMount.current) {
-      if (activeTrip) {
-        localStorage.setItem(STORAGE_KEY_ACTIVE, JSON.stringify(activeTrip));
-      } else {
-        localStorage.removeItem(STORAGE_KEY_ACTIVE);
-      }
+    if (activeTrip) {
+      localStorage.setItem(STORAGE_KEY_ACTIVE, JSON.stringify(activeTrip));
+    } else {
+      localStorage.removeItem(STORAGE_KEY_ACTIVE);
     }
   }, [activeTrip]);
 
@@ -104,14 +86,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteTrip = (id: string) => {
-    // Explicitné potvrdenie a okamžitá aktualizácia stavu
-    const confirmed = window.confirm('Naozaj chcete vymazať túto jazdu?');
-    if (confirmed) {
-      setTrips(currentTrips => {
-        const newTrips = currentTrips.filter(t => t.id !== id);
-        return newTrips;
-      });
-    }
+    setTrips(current => current.filter(t => t.id !== id));
   };
 
   return (
