@@ -1,28 +1,47 @@
 
 import React from 'react';
-import { Trip, HistoryStats } from '../types';
+import { Trip, HistoryStats, ActiveTrip } from '../types';
 
 interface DashboardProps {
   stats: HistoryStats;
   recentTrips: Trip[];
+  activeTrip: ActiveTrip | null;
   onViewAll: () => void;
   onAddTrip: () => void;
-  aiInsight: string;
-  onFetchInsight: () => void;
-  isInsightLoading: boolean;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   stats, 
   recentTrips, 
+  activeTrip,
   onViewAll, 
-  onAddTrip, 
-  aiInsight, 
-  onFetchInsight, 
-  isInsightLoading 
+  onAddTrip
 }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Active Trip Banner */}
+      {activeTrip && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 flex items-center justify-between animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <div className="font-bold text-orange-900 leading-tight">Jazda prebieha...</div>
+              <div className="text-sm text-orange-700">Začiatok: {activeTrip.startTime} • Tachometer: {activeTrip.startOdometer} km</div>
+            </div>
+          </div>
+          <button 
+            onClick={onAddTrip}
+            className="px-4 py-2 bg-orange-600 text-white rounded-xl font-bold shadow-sm hover:bg-orange-700 transition-colors"
+          >
+            Ukončiť
+          </button>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
@@ -41,31 +60,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           <span className="text-slate-500 text-sm font-medium">Priemer / jazda</span>
           <span className="text-2xl font-bold text-slate-900">{stats.averageTripDistance.toFixed(1)} km</span>
         </div>
-      </div>
-
-      {/* AI Insight Card */}
-      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <h3 className="text-lg font-semibold uppercase tracking-wider">AI Analýza jázd</h3>
-          </div>
-          <button 
-            onClick={onFetchInsight} 
-            disabled={isInsightLoading}
-            className={`px-4 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-sm font-medium transition-all flex items-center gap-2 ${isInsightLoading ? 'opacity-50' : ''}`}
-          >
-            {isInsightLoading ? (
-              <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-            ) : null}
-            {aiInsight ? 'Aktualizovať' : 'Analyzovať jazdy'}
-          </button>
-        </div>
-        <p className="text-indigo-100 leading-relaxed italic">
-          {aiInsight || "Nechajte umelú inteligenciu zanalyzovať váš štýl jazdy a náklady. Stačí kliknúť na tlačidlo vyššie."}
-        </p>
       </div>
 
       {/* Recent Trips Header */}
@@ -103,7 +97,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               onClick={onAddTrip}
               className="px-6 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors"
             >
-              Pridať prvú jazdu
+              Začať prvú jazdu
             </button>
           </div>
         )}

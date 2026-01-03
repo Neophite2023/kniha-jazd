@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trip, AppSettings, HistoryStats } from './types';
-import { getDrivingInsights } from './services/geminiService';
+import { Trip, AppSettings, HistoryStats, ActiveTrip } from './types';
 import TripForm from './components/TripForm';
 import TripList from './components/TripList';
 import Settings from './components/Settings';
@@ -9,24 +8,44 @@ import Dashboard from './components/Dashboard';
 
 const STORAGE_KEY_TRIPS = 'kniha_jazd_trips_v1';
 const STORAGE_KEY_SETTINGS = 'kniha_jazd_settings_v1';
+const STORAGE_KEY_ACTIVE = 'kniha_jazd_active_v1';
 
 const App: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
   const [settings, setSettings] = useState<AppSettings>({
     fuelPrice: 1.65,
     averageConsumption: 6.5,
   });
   const [view, setView] = useState<'dashboard' | 'add' | 'history' | 'settings'>('dashboard');
-  const [aiInsight, setAiInsight] = useState<string>('');
-  const [isInsightLoading, setIsInsightLoading] = useState(false);
 
   // Load data from LocalStorage
   useEffect(() => {
     const storedTrips = localStorage.getItem(STORAGE_KEY_TRIPS);
     const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
+    const storedActive = localStorage.getItem(STORAGE_KEY_ACTIVE);
     
-    if (storedTrips) setTrips(JSON.parse(storedTrips));
-    if (storedSettings) setSettings(JSON.parse(storedSettings));
+    if (storedTrips) {
+      try {
+        setTrips(JSON.parse(storedTrips));
+      } catch (e) {
+        console.error("Chyba pri načítaní jázd", e);
+      }
+    }
+    if (storedSettings) {
+      try {
+        setSettings(JSON.parse(storedSettings));
+      } catch (e) {
+        console.error("Chyba pri načítaní nastavení", e);
+      }
+    }
+    if (storedActive) {
+      try {
+        setActiveTrip(JSON.parse(storedActive));
+      } catch (e) {
+        console.error("Chyba pri načítaní aktívnej jazdy", e);
+      }
+    }
   }, []);
 
   // Save data to LocalStorage
@@ -37,6 +56,14 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    if (activeTrip) {
+      localStorage.setItem(STORAGE_KEY_ACTIVE, JSON.stringify(activeTrip));
+    } else {
+      localStorage.removeItem(STORAGE_KEY_ACTIVE);
+    }
+  }, [activeTrip]);
 
   const stats: HistoryStats = useMemo(() => {
     const totalDistance = trips.reduce((acc, t) => acc + t.distanceKm, 0);
@@ -50,20 +77,21 @@ const App: React.FC = () => {
     };
   }, [trips]);
 
-  const handleAddTrip = (newTrip: Trip) => {
+  const handleSaveTrip = (newTrip: Trip) => {
     setTrips(prev => [newTrip, ...prev]);
+    setActiveTrip(null);
+    setView('dashboard');
+  };
+
+  const handleStartTrip = (trip: ActiveTrip) => {
+    setActiveTrip(trip);
     setView('dashboard');
   };
 
   const handleDeleteTrip = (id: string) => {
-    setTrips(prev => prev.filter(t => t.id !== id));
-  };
-
-  const handleFetchInsight = async () => {
-    setIsInsightLoading(true);
-    const insight = await getDrivingInsights(trips, settings);
-    setAiInsight(insight);
-    setIsInsightLoading(false);
+    if (window.confirm('Naozaj chcete vymazať túto jazdu?')) {
+      setTrips(prev => prev.filter(t => t.id !== id));
+    }
   };
 
   return (
@@ -95,18 +123,20 @@ const App: React.FC = () => {
           <Dashboard 
             stats={stats} 
             recentTrips={trips.slice(0, 3)} 
+            activeTrip={activeTrip}
             onViewAll={() => setView('history')}
             onAddTrip={() => setView('add')}
-            aiInsight={aiInsight}
-            onFetchInsight={handleFetchInsight}
-            isInsightLoading={isInsightLoading}
           />
         )}
         {view === 'add' && (
           <TripForm 
+            key={activeTrip ? 'active' : 'new'}
             settings={settings} 
-            onSave={handleAddTrip} 
+            activeTrip={activeTrip}
+            onStart={handleStartTrip}
+            onSave={handleSaveTrip} 
             onCancel={() => setView('dashboard')} 
+            lastTripEndOdometer={trips.length > 0 ? trips[0].endOdometer : 0}
           />
         )}
         {view === 'history' && (
@@ -131,8 +161,12 @@ const App: React.FC = () => {
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
           <span className="text-xs mt-1">Domov</span>
         </button>
-        <button onClick={() => setView('add')} className={`flex flex-col items-center p-3 bg-blue-600 rounded-full -mt-10 border-4 border-slate-50 shadow-blue-200 shadow-xl text-white`}>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+        <button onClick={() => setView('add')} className={`flex flex-col items-center p-3 ${activeTrip ? 'bg-orange-500' : 'bg-blue-600'} rounded-full -mt-10 border-4 border-slate-50 shadow-xl text-white transition-colors`}>
+          {activeTrip ? (
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>
+          ) : (
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          )}
         </button>
         <button onClick={() => setView('history')} className={`flex flex-col items-center ${view === 'history' ? 'text-blue-600' : 'text-slate-400'}`}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -145,10 +179,14 @@ const App: React.FC = () => {
         {view !== 'add' && (
           <button 
             onClick={() => setView('add')}
-            className="w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-xl hover:bg-blue-700 transition-all hover:scale-110 active:scale-95"
-            title="Pridať jazdu"
+            className={`w-14 h-14 ${activeTrip ? 'bg-orange-500' : 'bg-blue-600'} text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all`}
+            title={activeTrip ? "Ukončiť jazdu" : "Začať jazdu"}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            {activeTrip ? (
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>
+            ) : (
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>
+            )}
           </button>
         )}
       </div>

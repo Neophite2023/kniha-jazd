@@ -10,6 +10,15 @@ export interface Trip {
   totalCost: number;
   fuelConsumed: number;
   note?: string;
+  startOdometer: number;
+  endOdometer: number;
+}
+
+export interface ActiveTrip {
+  startDate: string;
+  startTime: string;
+  startOdometer: number;
+  note?: string;
 }
 
 export interface AppSettings {
