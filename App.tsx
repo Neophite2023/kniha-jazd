@@ -88,7 +88,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black flex flex-col text-zinc-100 selection:bg-white selection:text-black antialiased">
-      {/* Modern thin border header */}
       <header className="bg-black/60 backdrop-blur-md border-b border-white/[0.08] sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -146,7 +145,6 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Floating Modern Nav - Width fixed to remain consistent across views */}
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
         <div className="bg-zinc-900/80 backdrop-blur-2xl border border-white/10 py-3 px-8 gap-12 flex justify-center items-center rounded-[2rem] shadow-[0_20px_40px_rgba(0,0,0,0.6)] transition-all duration-300">
           <button onClick={() => setView('dashboard')} className={`flex flex-col items-center gap-1 transition-all ${view === 'dashboard' ? 'text-white' : 'text-zinc-500 hover:text-zinc-400'}`}>
