@@ -2,7 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Trip, AppSettings } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getDrivingInsights = async (trips: Trip[], settings: AppSettings) => {
   if (trips.length === 0) return "Pridajte svoju prvú jazdu, aby som vám mohol poskytnúť analýzu.";
@@ -20,6 +21,7 @@ export const getDrivingInsights = async (trips: Trip[], settings: AppSettings) =
       Aktuálna cena benzínu: ${settings.fuelPrice} €/L.
       Povedz mi v 2-3 vetách v slovenčine, či sú tieto náklady primerané a daj mi jeden tip na šetrenie palivom.`,
     });
+    // Use .text property to get the generated text content
     return response.text || "Nepodarilo sa vygenerovať analýzu.";
   } catch (error) {
     console.error("Gemini Error:", error);

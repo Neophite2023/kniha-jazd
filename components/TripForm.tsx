@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Trip, AppSettings, ActiveTrip } from '../types';
 
@@ -20,7 +19,9 @@ const TripForm: React.FC<TripFormProps> = ({
   lastTripEndOdometer 
 }) => {
   const [odometer, setOdometer] = useState<string>(
-    activeTrip ? '' : (lastTripEndOdometer > 0 ? lastTripEndOdometer.toString() : '')
+    activeTrip 
+      ? activeTrip.startOdometer.toString() 
+      : (lastTripEndOdometer > 0 ? lastTripEndOdometer.toString() : '')
   );
   const [note, setNote] = useState<string>(activeTrip?.note || '');
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -30,25 +31,19 @@ const TripForm: React.FC<TripFormProps> = ({
     const updateTime = () => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }));
-      setCurrentDate(now.toLocaleDateString('sk-SK'));
+      setCurrentDate(now.toLocaleDateString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric' }));
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const generateId = () => {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  };
+  const generateId = () => Math.random().toString(36).substring(2, 10);
 
   const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
     const startVal = parseFloat(odometer);
-    if (isNaN(startVal) || startVal < 0) {
-      alert('Zadajte platný stav tachometra (nezáporné číslo)');
-      return;
-    }
-
+    if (isNaN(startVal) || startVal < 0) return;
     const now = new Date();
     onStart({
       startDate: now.toISOString().split('T')[0],
@@ -61,26 +56,16 @@ const TripForm: React.FC<TripFormProps> = ({
   const handleEnd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTrip) return;
-
     const endVal = parseFloat(odometer);
-    if (isNaN(endVal)) {
-      alert('Zadajte cieľový stav tachometra');
-      return;
-    }
-    
-    if (endVal <= activeTrip.startOdometer) {
-      alert(`Stav tachometra v cieli (${endVal} km) musí byť vyšší ako pri štarte (${activeTrip.startOdometer} km)`);
-      return;
-    }
+    if (isNaN(endVal) || endVal <= activeTrip.startOdometer) return;
 
     const distance = endVal - activeTrip.startOdometer;
     const fuelConsumed = (distance / 100) * settings.averageConsumption;
     const totalCost = fuelConsumed * settings.fuelPrice;
-    
     const now = new Date();
     const endTimeStr = now.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
 
-    const newTrip: Trip = {
+    onSave({
       id: generateId(),
       date: activeTrip.startDate,
       startTime: activeTrip.startTime,
@@ -93,107 +78,75 @@ const TripForm: React.FC<TripFormProps> = ({
       fuelConsumed: parseFloat(fuelConsumed.toFixed(2)),
       totalCost: parseFloat(totalCost.toFixed(2)),
       note: note.trim() || activeTrip.note,
-    };
-
-    onSave(newTrip);
+    });
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 max-w-md mx-auto animate-in slide-in-from-bottom-4 duration-300">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">
-          {activeTrip ? 'Ukončenie jazdy' : 'Začiatok jazdy'}
-        </h2>
-        <div className={`px-3 py-1 rounded-lg text-xs font-bold uppercase ${activeTrip ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-          Krok {activeTrip ? '2/2' : '1/2'}
-        </div>
-      </div>
-      
-      <div className="mb-8 p-4 bg-slate-50 rounded-2xl flex flex-col items-center justify-center border border-slate-100">
-        <div className="text-4xl font-black text-slate-800 tabular-nums">{currentTime || '--:--'}</div>
-        <div className="text-sm font-semibold text-slate-400 mt-1 uppercase tracking-widest">{currentDate || '...'}</div>
-      </div>
-
-      {activeTrip && (
-        <div className="mb-6 p-4 border-l-4 border-orange-500 bg-orange-50 rounded-r-xl">
-          <div className="text-xs font-bold text-orange-400 uppercase tracking-wider mb-1">Priebeh jazdy</div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="text-slate-500">Štart:</span>
-              <span className="ml-2 font-bold text-slate-700">{activeTrip.startTime}</span>
-            </div>
-            <div>
-              <span className="text-slate-500">Tacho:</span>
-              <span className="ml-2 font-bold text-slate-700">{activeTrip.startOdometer} km</span>
-            </div>
+    <div className="max-w-md mx-auto animate-in zoom-in-95 duration-300">
+      <div className="bg-zinc-900 border border-white/10 p-5 sm:p-8 rounded-[2rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)]">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-2xl font-black text-white tracking-tighter uppercase">
+              {activeTrip ? 'Cieľ' : 'Štart'}
+            </h2>
+            <div className="h-1 w-6 bg-white/30 rounded-full mt-1"></div>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] font-black text-white tracking-widest uppercase">{activeTrip ? 'Ukončenie' : 'Zahájenie'}</span>
+            <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">{activeTrip ? 'Krok 02' : 'Krok 01'}</span>
           </div>
         </div>
-      )}
+        
+        <div className="mb-6 py-4 bg-black rounded-2xl flex flex-col items-center justify-center border border-white/5 shadow-inner">
+          <div className="text-5xl font-black text-white tabular-nums tracking-tighter drop-shadow-lg">{currentTime || '00:00'}</div>
+          <div className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.4em] mt-1">{currentDate}</div>
+        </div>
 
-      <form onSubmit={activeTrip ? handleEnd : handleStart} className="space-y-6">
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
-            Stav tachometra {activeTrip ? 'v cieli' : 'pri štarte'} (km)
-          </label>
-          <div className="relative">
+        <form onSubmit={activeTrip ? handleEnd : handleStart} className="space-y-5">
+          <div className="group">
+            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1.5 ml-1 group-focus-within:text-white transition-colors">Tachometer (km)</label>
             <input 
               type="number" 
               inputMode="decimal"
-              step="any"
               required
               value={odometer}
               onChange={(e) => setOdometer(e.target.value)}
-              className="w-full pl-4 pr-12 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all text-xl font-bold text-slate-800"
-              placeholder="Zadajte km..."
+              className="w-full px-0 py-2 bg-transparent border-b border-white/10 focus:border-white outline-none transition-all text-3xl font-black text-white placeholder-zinc-800 tabular-nums"
+              placeholder="0000.0"
+              autoFocus
+              onFocus={(e) => e.target.select()}
             />
-            <span className="absolute right-4 top-4.5 text-slate-400 font-bold">km</span>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Poznámka</label>
-          <textarea 
-            rows={2}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none resize-none transition-all text-slate-800"
-            placeholder="Napr. Smer Bratislava..."
-          />
-        </div>
+          <div>
+            <label className="block text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1.5 ml-1">Poznámka / Cieľ</label>
+            <input 
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full px-4 py-3 bg-black border border-white/5 focus:border-white/20 rounded-xl outline-none transition-all text-xs text-zinc-300 font-medium placeholder-zinc-700"
+              placeholder="Napríklad: Smer Bratislava..."
+            />
+          </div>
 
-        <div className="pt-2 flex flex-col gap-3">
-          {activeTrip ? (
+          <div className="pt-2 flex flex-col gap-3">
             <button 
               type="submit"
-              className="w-full py-5 bg-orange-600 text-white rounded-2xl font-bold shadow-lg shadow-orange-100 hover:bg-orange-700 active:scale-95 transition-all flex items-center justify-center gap-3 text-lg"
+              className="w-full py-4 bg-white text-black rounded-xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-zinc-200 transition-all active:scale-[0.98] shadow-lg"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Ukončiť a uložiť jazdu
+              {activeTrip ? 'Uložiť a Uzatvoriť' : 'Zaznamenať Odchod'}
             </button>
-          ) : (
+            
             <button 
-              type="submit"
-              className="w-full py-5 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-3 text-lg"
+              type="button"
+              onClick={onCancel}
+              className="w-full py-1 text-zinc-600 text-[9px] font-bold uppercase tracking-widest hover:text-white transition-colors"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Začať jazdu teraz
+              Zrušiť
             </button>
-          )}
-          
-          <button 
-            type="button"
-            onClick={onCancel}
-            className="w-full py-3 text-slate-400 font-semibold hover:text-slate-600 transition-colors"
-          >
-            Zatvoriť
-          </button>
-        </div>
-      </form>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
