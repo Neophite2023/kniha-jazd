@@ -9,6 +9,12 @@ interface TripListProps {
 }
 
 const TripList: React.FC<TripListProps> = ({ trips, onDelete, onBack }) => {
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation(); // Zabráni prebublávaniu eventu
+    onDelete(id);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-400">
       <div className="flex items-center gap-4">
@@ -30,7 +36,6 @@ const TripList: React.FC<TripListProps> = ({ trips, onDelete, onBack }) => {
               
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
-                  {/* Calendar view for tablet/desktop */}
                   <div className="hidden sm:flex flex-col items-center justify-center bg-slate-50 p-2 rounded-lg min-w-[70px] border border-slate-100">
                     <span className="text-xs font-bold text-slate-400 uppercase">{new Date(trip.date).toLocaleDateString('sk-SK', { month: 'short' })}</span>
                     <span className="text-xl font-black text-slate-700">{new Date(trip.date).getDate()}</span>
@@ -39,7 +44,6 @@ const TripList: React.FC<TripListProps> = ({ trips, onDelete, onBack }) => {
                   <div className="flex-grow">
                     <div className="text-lg font-bold text-slate-900">{trip.distanceKm} km</div>
                     
-                    {/* Explicit date and time for all devices */}
                     <div className="text-sm text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
                       <span className="font-semibold text-slate-700 flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -76,8 +80,9 @@ const TripList: React.FC<TripListProps> = ({ trips, onDelete, onBack }) => {
                     <div className="font-semibold text-slate-700">{trip.fuelConsumed.toFixed(2)} L</div>
                   </div>
                   <button 
-                    onClick={() => onDelete(trip.id)}
-                    className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all sm:opacity-0 group-hover:opacity-100"
+                    type="button"
+                    onClick={(e) => handleDelete(e, trip.id)}
+                    className="p-3 text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all flex items-center justify-center border border-red-100 active:scale-90"
                     title="Odstrániť jazdu"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

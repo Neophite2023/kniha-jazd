@@ -19,7 +19,6 @@ const TripForm: React.FC<TripFormProps> = ({
   onCancel,
   lastTripEndOdometer 
 }) => {
-  // Inicializujeme stav - ak jazda prebieha, odometer je prázdny (čaká na cieľ), inak posledná hodnota
   const [odometer, setOdometer] = useState<string>(
     activeTrip ? '' : (lastTripEndOdometer > 0 ? lastTripEndOdometer.toString() : '')
   );
@@ -34,9 +33,13 @@ const TripForm: React.FC<TripFormProps> = ({
       setCurrentDate(now.toLocaleDateString('sk-SK'));
     };
     updateTime();
-    const interval = setInterval(updateTime, 1000); // Častejšia aktualizácia pre lepší pocit
+    const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const generateId = () => {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  };
 
   const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +81,7 @@ const TripForm: React.FC<TripFormProps> = ({
     const endTimeStr = now.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
 
     const newTrip: Trip = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       date: activeTrip.startDate,
       startTime: activeTrip.startTime,
       endTime: endTimeStr,

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Trip, AppSettings, HistoryStats, ActiveTrip } from './types';
 import TripForm from './components/TripForm';
 import TripList from './components/TripList';
@@ -18,8 +18,11 @@ const App: React.FC = () => {
     averageConsumption: 6.5,
   });
   const [view, setView] = useState<'dashboard' | 'add' | 'history' | 'settings'>('dashboard');
+  
+  // Pomocná premenná na sledovanie, či sú dáta už načítané
+  const isInitialMount = useRef(true);
 
-  // Load data from LocalStorage
+  // 1. Načítanie dát pri štarte
   useEffect(() => {
     const storedTrips = localStorage.getItem(STORAGE_KEY_TRIPS);
     const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
@@ -27,7 +30,8 @@ const App: React.FC = () => {
     
     if (storedTrips) {
       try {
-        setTrips(JSON.parse(storedTrips));
+        const parsed = JSON.parse(storedTrips);
+        if (Array.isArray(parsed)) setTrips(parsed);
       } catch (e) {
         console.error("Chyba pri načítaní jázd", e);
       }
@@ -46,22 +50,33 @@ const App: React.FC = () => {
         console.error("Chyba pri načítaní aktívnej jazdy", e);
       }
     }
+    
+    // Po krátkom čase nastavíme, že už sme "po načítaní"
+    setTimeout(() => {
+      isInitialMount.current = false;
+    }, 100);
   }, []);
 
-  // Save data to LocalStorage
+  // 2. Ukladanie dát (iba ak už nie sme v "initial mount" fáze)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_TRIPS, JSON.stringify(trips));
+    if (!isInitialMount.current) {
+      localStorage.setItem(STORAGE_KEY_TRIPS, JSON.stringify(trips));
+    }
   }, [trips]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+    if (!isInitialMount.current) {
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+    }
   }, [settings]);
 
   useEffect(() => {
-    if (activeTrip) {
-      localStorage.setItem(STORAGE_KEY_ACTIVE, JSON.stringify(activeTrip));
-    } else {
-      localStorage.removeItem(STORAGE_KEY_ACTIVE);
+    if (!isInitialMount.current) {
+      if (activeTrip) {
+        localStorage.setItem(STORAGE_KEY_ACTIVE, JSON.stringify(activeTrip));
+      } else {
+        localStorage.removeItem(STORAGE_KEY_ACTIVE);
+      }
     }
   }, [activeTrip]);
 
@@ -89,14 +104,18 @@ const App: React.FC = () => {
   };
 
   const handleDeleteTrip = (id: string) => {
-    if (window.confirm('Naozaj chcete vymazať túto jazdu?')) {
-      setTrips(prev => prev.filter(t => t.id !== id));
+    // Explicitné potvrdenie a okamžitá aktualizácia stavu
+    const confirmed = window.confirm('Naozaj chcete vymazať túto jazdu?');
+    if (confirmed) {
+      setTrips(currentTrips => {
+        const newTrips = currentTrips.filter(t => t.id !== id);
+        return newTrips;
+      });
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Header */}
       <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -117,7 +136,6 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-grow max-w-4xl w-full mx-auto p-4 sm:p-6 mb-20">
         {view === 'dashboard' && (
           <Dashboard 
@@ -155,7 +173,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Mobile Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-3 px-6 flex justify-around items-center shadow-lg md:hidden">
         <button onClick={() => setView('dashboard')} className={`flex flex-col items-center ${view === 'dashboard' ? 'text-blue-600' : 'text-slate-400'}`}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
@@ -173,23 +190,6 @@ const App: React.FC = () => {
           <span className="text-xs mt-1">História</span>
         </button>
       </nav>
-
-      {/* Desktop Quick Nav Hint */}
-      <div className="hidden md:flex fixed right-8 bottom-8 flex-col gap-4">
-        {view !== 'add' && (
-          <button 
-            onClick={() => setView('add')}
-            className={`w-14 h-14 ${activeTrip ? 'bg-orange-500' : 'bg-blue-600'} text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all`}
-            title={activeTrip ? "Ukončiť jazdu" : "Začať jazdu"}
-          >
-            {activeTrip ? (
-               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>
-            ) : (
-               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>
-            )}
-          </button>
-        )}
-      </div>
     </div>
   );
 };
