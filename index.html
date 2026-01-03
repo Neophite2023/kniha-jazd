@@ -2,8 +2,19 @@
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     <title>Kniha Jázd Pro</title>
+    
+    <!-- iOS PWA meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kniha Jázd">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2555/2555013.png">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -12,6 +23,8 @@
             background-color: #000000;
             color: #ffffff;
             -webkit-font-smoothing: antialiased;
+            /* Prevents overscroll bounce on iOS but allows scrolling */
+            overscroll-behavior-y: none;
         }
         .view-transition {
             animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -19,6 +32,14 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: scale(0.98); }
             to { opacity: 1; transform: scale(1); }
+        }
+        /* Handle iOS safe areas (notch/home indicator) */
+        main {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        nav {
+            padding-bottom: env(safe-area-inset-bottom);
         }
         /* Custom scrollbar for deep dark */
         ::-webkit-scrollbar { width: 6px; }
