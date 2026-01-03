@@ -156,7 +156,7 @@ const App: React.FC = () => {
           
           <button 
             onClick={() => view === 'add' ? setView('dashboard') : setView('add')} 
-            className={`flex items-center justify-center w-12 h-12 rounded-full border-[6px] border-zinc-900 -mt-10 shadow-xl transition-all hover:scale-105 active:scale-95 group ${view === 'add' ? 'bg-zinc-800 text-white' : 'bg-white text-black'}`}
+            className={`flex items-center justify-center w-12 h-12 scale-[1.01] rounded-full border-[6px] border-zinc-900 -mt-10 shadow-xl transition-all hover:scale-[1.05] active:scale-95 group ${view === 'add' ? 'bg-zinc-800 text-white' : 'bg-white text-black'}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-300 ${activeTrip || view === 'add' ? 'rotate-45' : 'group-hover:rotate-90'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d={(activeTrip || view === 'add') ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
