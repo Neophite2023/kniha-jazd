@@ -4,7 +4,9 @@ import { Trip, AppSettings } from "../types";
 // Bezpečné získanie API kľúča
 const getApiKey = () => {
   try {
-    return typeof process !== 'undefined' ? process.env.API_KEY : '';
+    // Vite používa import.meta.env namiesto process.env
+    // @ts-ignore
+    return (typeof process !== 'undefined' && process.env.API_KEY) || (import.meta.env && import.meta.env.VITE_API_KEY) || '';
   } catch {
     return '';
   }
